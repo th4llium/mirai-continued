@@ -175,8 +175,8 @@ void main() {
     vec3 ambientLight = max(blockAmbient * vanillaAO + skyAmbient * vanillaAO * vanillaAO, vec3_splat(MIN_AMBIENT_LIGHT));
     vec3 outColor = ambientLight * albedo * (1.0 - metalness);
 
-    gl_FragData[0] = vec4(outColor, 1.0); //this will be added to s_DiffuseLighting
-    gl_FragData[1] = vec4_splat(0.0);
+    gl_FragData[0] = vec4_splat(0.0);
+    gl_FragData[1] = vec4(outColor, 1.0); //this will be added to s_DiffuseLighting
     gl_FragData[2] = vec4_splat(0.0);
 }
 

@@ -1,3 +1,4 @@
+#include "./lib/common.glsl"
 #include "./lib/taau_util.glsl"
 
 
@@ -25,7 +26,7 @@ void main() {
     vec4 color = a_color0;
 #endif
 
-    v_texcoord0 = a_texcoord0;
+    v_texcoord0 = unpackTerrainUV(a_texcoord0);
 
 #if !DEPTH_ONLY_PASS && !DEPTH_ONLY_OPAQUE_PASS
     uvec2 data16 = uvec2(a_texcoord1 * 65535.0);

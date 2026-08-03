@@ -19,7 +19,7 @@ void main() {
     vec3 worldPos = mul(u_model[0], vec4(a_position, 1.0)).xyz;
 #endif
 
-    v_texcoord0 = a_texcoord0;
+    v_texcoord0 = unpackTerrainUV(a_texcoord0);
     uvec2 data16 = uvec2(a_texcoord1 * 65535.0);
     v_lightmapUV = vec2(uvec2(data16.y >> 4, data16.y) & 15u) / 15.0;
 

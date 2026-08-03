@@ -90,4 +90,17 @@ float pow6(float x) { return x * x * x * x * x * x; }
 float pow7(float x) { return x * x * x * x * x * x * x; }
 float pow8(float x) { return x * x * x * x * x * x * x * x; }
 
+vec2 unpackTerrainUV(vec2 rawTexcoord) {
+    CONST(float) kUVScale = 1.0 / 65535.0;
+    CONST(float) kBiasScale = 1.0 / 32768.0;
+    uvec2 packedUV = uvec2(round(rawTexcoord * 65535.0));
+    vec2 uv = vec2(
+        float((packedUV.x & 0x7FFFu) << 1u),
+        float((packedUV.y & 0x7FFFu) << 1u)
+    ) * kUVScale;
+    uv.x += kBiasScale * ((2.0 * float((packedUV.x & 0x8000u) >> 15u)) - 1.0);
+    uv.y += kBiasScale * ((2.0 * float((packedUV.y & 0x8000u) >> 15u)) - 1.0);
+    return uv;
+}
+
 #endif

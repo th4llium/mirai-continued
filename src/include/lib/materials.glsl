@@ -8,6 +8,7 @@ CONST(int) kPBRTextureDataFlagHasMaterialTexture = 1;
 CONST(int) kPBRTextureDataFlagHasSubsurfaceChannel = 2;
 CONST(int) kPBRTextureDataFlagHasNormalTexture = 4;
 CONST(int) kPBRTextureDataFlagHasHeightMapTexture = 8;
+CONST(int) kPBRTextureDataFlagHasPackedHeightNormalsTexture = 16;
 
 vec2 octWrap(vec2 v) {
     return (1.0 - abs(v.yx)) * ((2.0 * step(0.0, v)) - 1.0);
@@ -82,6 +83,51 @@ vec3 calculateTangentNormalFromHeightmap(highp sampler2D heightmapTexture, vec2 
     return tangentNormal;
 }
 
+vec3 calculateTangentNormalFromPackedHeightmap(
+    highp sampler2D heightmapTexture,
+    vec2 heightmapUV,
+    float mipLevel
+) {
+    CONST(float) kHeightMapPixelEdgeWidth = 0.08333333333333333;
+    CONST(float) kRecipHeightMapDepth = 0.25;
+    CONST(float) kHeightMapFlattenEpsilon = 0.005;
+
+    vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
+    float fadeForLowerMips = linearstep(2.0, 1.0, mipLevel);
+
+    if (fadeForLowerMips > 0.0) {
+        vec4 pixelSample = texture2DLod(heightmapTexture, heightmapUV, 0.0);
+
+        if (pixelSample.r == pixelSample.g && pixelSample.g == pixelSample.b) {
+            tangentNormal = calculateTangentNormalFromHeightmap(
+                heightmapTexture, heightmapUV, mipLevel
+            );
+        } else {
+            vec2 texDims = vec2(textureSize(heightmapTexture, 0));
+            vec2 nudgeSampleCoord = fract(heightmapUV * texDims);
+            vec4 edgeNormals = pixelSample * 2.0 - 1.0;
+
+            tangentNormal.x = step(1.0 - kHeightMapPixelEdgeWidth, nudgeSampleCoord.x)
+                                * edgeNormals.y
+                            + step(nudgeSampleCoord.x, kHeightMapPixelEdgeWidth)
+                                * (-edgeNormals.w);
+            tangentNormal.y = step(1.0 - kHeightMapPixelEdgeWidth, nudgeSampleCoord.y)
+                                * edgeNormals.z
+                            + step(nudgeSampleCoord.y, kHeightMapPixelEdgeWidth)
+                                * (-edgeNormals.x);
+
+            tangentNormal.x *= step(kHeightMapFlattenEpsilon, abs(tangentNormal.x));
+            tangentNormal.y *= step(kHeightMapFlattenEpsilon, abs(tangentNormal.y));
+
+            tangentNormal.z = kRecipHeightMapDepth;
+            vec3 normalized = normalize(tangentNormal);
+            tangentNormal = vec3(normalized.xy * fadeForLowerMips, normalized.z);
+        }
+    }
+
+    return tangentNormal;
+}
+
 #if defined(MATERIAL_ITEM_IN_HAND_FORWARD_PBR_TEXTURED) || \
 defined(MATERIAL_ITEM_IN_HAND_PREPASS_TEXTURED) || \
 defined(MATERIAL_RENDERCHUNK_FORWARD_PBR) || \
@@ -138,13 +184,17 @@ void getTexturePBRMaterials(
     vec3 tNormal = vec3(0.0, 0.0, 1.0);
     bool hasNormal = (pbrTextureData.flags & kPBRTextureDataFlagHasNormalTexture) == kPBRTextureDataFlagHasNormalTexture;
     bool hasHeightmap = (pbrTextureData.flags & kPBRTextureDataFlagHasHeightMapTexture) == kPBRTextureDataFlagHasHeightMapTexture;
+    bool hasPackedHeightmap = (pbrTextureData.flags & kPBRTextureDataFlagHasPackedHeightNormalsTexture) == kPBRTextureDataFlagHasPackedHeightNormalsTexture;
 
-    if (hasNormal || hasHeightmap) {
+    if (hasNormal || hasHeightmap || hasPackedHeightmap) {
         vec2 normalUVScale = vec2(pbrTextureData.colourToNormalUvScale0, pbrTextureData.colourToNormalUvScale1);
         vec2 normalUVBias = vec2(pbrTextureData.colourToNormalUvBias0, pbrTextureData.colourToNormalUvBias1);
 
         if (hasNormal) {
             tNormal = texture2D(matTexture, uv * normalUVScale + normalUVBias).rgb * 2.0 - 1.0;
+        } else if (hasPackedHeightmap) {
+            float normalMipLevel = min(pbrTextureData.maxMipNormal - pbrTextureData.maxMipColour, pbrTextureData.maxMipNormal);
+            tNormal = calculateTangentNormalFromPackedHeightmap(matTexture, uv * normalUVScale + normalUVBias, normalMipLevel);
         } else if (hasHeightmap) {
             float normalMipLevel = min(pbrTextureData.maxMipNormal - pbrTextureData.maxMipColour, pbrTextureData.maxMipNormal);
             tNormal = calculateTangentNormalFromHeightmap(matTexture, uv * normalUVScale + normalUVBias, normalMipLevel);

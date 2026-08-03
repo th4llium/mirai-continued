@@ -1,3 +1,4 @@
+#include "./lib/common.glsl"
 #include "./lib/taau_util.glsl"
 
 
@@ -25,7 +26,7 @@ void main() {
 #endif
 
 #if !DEPTH_ONLY_PASS && !DEPTH_ONLY_OPAQUE_PASS
-    v_texcoord0 = a_texcoord0;
+    v_texcoord0 = unpackTerrainUV(a_texcoord0);
     v_pbrTextureId = a_texcoord4 & 0xFFFF;
     v_normal = mul(u_model[0], vec4(a_normal.xyz, 0.0)).xyz;
     v_tangent = mul(u_model[0], vec4(a_tangent.xyz, 0.0)).xyz;

@@ -15,7 +15,7 @@ void main() {
     vec3 worldPos = mul(u_model[0], vec4(a_position, 1.0)).xyz;
 #endif
 
-    v_texcoord0 = a_texcoord0;
+    v_texcoord0 = unpackTerrainUV(a_texcoord0);
     v_textureShift = a_texcoord2;
 
 #if !DEPTH_ONLY_PASS

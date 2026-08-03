@@ -26,7 +26,7 @@ void main() {
     vec4 clipPos = jitterVertexPosition(worldPos);
 
 #ifdef MATERIAL_ITEM_IN_HAND_FORWARD_PBR_TEXTURED
-    v_texcoord0 = a_texcoord0;
+    v_texcoord0 = unpackTerrainUV(a_texcoord0);
     v_pbrTextureId = int(a_texcoord4);
     v_tangent = mul(u_model[0], vec4(a_tangent.xyz, 0.0)).xyz;
     v_bitangent = mul(u_model[0], vec4(cross(a_normal.xyz, a_tangent.xyz) * a_tangent.w, 0.0)).xyz;
@@ -41,8 +41,9 @@ void main() {
     v_clipPos = clipPos;
 
 #ifdef MATERIAL_ITEM_IN_HAND_FORWARD_PBR_GLINT
-    v_glintUV.xy = calculateLayerUV(a_texcoord0, UVAnimation.x, UVAnimation.z, UVScale.xy);
-    v_glintUV.zw = calculateLayerUV(a_texcoord0, UVAnimation.y, UVAnimation.w, UVScale.xy);
+    vec2 unpackedUV = unpackTerrainUV(a_texcoord0);
+    v_glintUV.xy = calculateLayerUV(unpackedUV, UVAnimation.x, UVAnimation.z, UVScale.xy);
+    v_glintUV.zw = calculateLayerUV(unpackedUV, UVAnimation.y, UVAnimation.w, UVScale.xy);
 #endif
 
     //add smooth transition between night and sunrise, sunset and night
